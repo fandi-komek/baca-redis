@@ -26,7 +26,6 @@ for ( var x = 0; x < campaignList.length; x++){
     let tmpHasilCampaign = 9999;
     getCampaignIsActive(tmpNamaCampaign)
     .then((values) => {
-        //console.info('didalem:', values);
         tmpHasilCampaign = values;
         console.log(`Hasil campaign [${tmpNamaCampaign}] = [${tmpHasilCampaign}]`);
     }).catch((err) => console.error(err));
