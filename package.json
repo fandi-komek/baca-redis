@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "single": "node src/single-value.js",
+    "multi" : "node src/multi-value.js"
   },
   "author": "",
   "license": "ISC",
