@@ -20,6 +20,7 @@ function getCampaignIsActive(campaign){
        }
     })
 }
+/** CARA PERTAMA  */
 
 for ( var x = 0; x < campaignList.length; x++){
     let tmpNamaCampaign = campaignList[x];
@@ -27,6 +28,14 @@ for ( var x = 0; x < campaignList.length; x++){
     getCampaignIsActive(tmpNamaCampaign)
     .then((values) => {
         tmpHasilCampaign = values;
-        console.log(`Hasil campaign [${tmpNamaCampaign}] = [${tmpHasilCampaign}]`);
+        console.log(`[CARA 1][${x}] Hasil campaign [${tmpNamaCampaign}] = [${tmpHasilCampaign}]`);
     }).catch((err) => console.error(err));
+}
+/** CARA KEDUA  */
+for ( var y = 0; y < campaignList.length; y++){
+    let tmpNamaCampaign = campaignList[y];
+    let tmpHasilCampaign02  = Promise.resolve(getCampaignIsActive(tmpNamaCampaign));
+    tmpHasilCampaign02.then((value) => {
+        console.log(`[CARA 2][${y}] Hasil campaign [${tmpNamaCampaign}] = [${value}]`);
+    });
 }
