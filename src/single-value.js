@@ -7,9 +7,14 @@ function getCampaignIsActive(campaign){
        if (campaign !== ""){
             let retreivedCampaignData;
             retreivedCampaignData = new Promise((resolve, reject) => {
+                /*
                 redisBroadcaster.keys(`*|${campaign}`, (error, channels) => {
                     resolve(channels.length);
-                })
+                });
+                */
+               redisBroadcaster.keys(`${campaign}`, (error, channels) => {
+                resolve(channels.length);
+            });
             });
             Promise.resolve(retreivedCampaignData)
             .then((values) => {
