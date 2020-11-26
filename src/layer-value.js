@@ -28,7 +28,45 @@ function getCekCampaign(campaign){
             .then((cekCampaign) => {
                 if (cekCampaign.rowCount === 0){
                     reject('Tidak ada campaign yang tersedia !');
-                } else {
+                } else if (cekCampaign.rowCount === 1) {
+                    let tmpCekCampaignStatus = new Promise((resolve, reject) => {
+                        redisBroadcaster.keys(`${campaign}`, (error, channels) => {
+                            resolve(channels.length);
+                        });
+                    });
+                    Promise.resolve(tmpCekCampaignStatus)
+                    .then((valueCekCampaign) => {
+                        if (valueCekCampaign === 0){
+                            // ------------------------
+                            // CAMPAIGN DI MULAI
+                            // ------------------------
+                            //redisBroadcaster.multi();
+                            //redisBroadcaster.hset(`${campaign}`, 'string_pop_url', `${cekCampaign.rows[0].screen_pop_url}`);
+                            
+                            // ------------------------
+                            // CAMPAIGN DATA
+                            // ------------------------
+                            /*
+                            db.query("SELECT DISTINCT(username) as namauser FROM contact WHERE campaign=$1",[campaign])
+                            .then((rowCampaignUsers) => {
+                                if (rowCampaignUsers.rowCount > 0){
+                                    for (let rowUser of rowCampaignUsers.rows){
+                                        let tmpCampaignKeys = `${rowUser}|${campaign}`;
+                                    }
+                                }
+                            }).catch((error) => console.error(error));
+                            */
+                            //db.query("SELECT customer_id, home_number, office_number, mobile_number, campaign, username, disposition FROM contact WHERE campaign=$1 AND disposition is null",[campaign])
+
+
+
+                            // ------------------------
+                            // EKSEKUSI
+                            // ------------------------
+                            
+                        }
+                    });
+                    /*
                     db.query("SELECT DISTINCT(username) as namauser FROM contact WHERE campaign=$1",[campaign])
                     .then((cekRedisCampaign) => {
                         if (cekRedisCampaign.rowCount > 0){
@@ -97,6 +135,7 @@ function getCekCampaign(campaign){
                             reject(`Tidak ada user di campaign ${campaign} !`);
                         }
                     }).catch((err) => console.error(err));
+                    */
                 }
             })
             .catch((err) => console.error(err));
