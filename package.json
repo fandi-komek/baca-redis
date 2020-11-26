@@ -5,13 +5,15 @@
   "main": "index.js",
   "scripts": {
     "single": "node src/single-value.js",
-    "multi" : "node src/multi-value.js"
+    "multi": "node src/multi-value.js",
+    "layer": "node src/layer-value.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "asterisk-manager-interface": "^1.1.1",
     "ioredis": "^4.19.2",
+    "pg": "^8.5.1",
     "redis": "^3.0.2"
   }
 }
