@@ -6,6 +6,8 @@
  */
 const pg_1      = require("pg");
 const redis_1   = require("redis");
+const util_1    = require("util");
+const moment_1  = require("moment");
 
 const db = new pg_1.Pool({
     user: 'obelisk',
@@ -24,128 +26,111 @@ function getCekCampaign(campaign){
             reject('Campaign tidak boleh kosong !');
         } else {
             // CEK ada campaign apa kagak
-            db.query("SELECT name, begin_time, finish_time, screen_pop_url FROM campaign WHERE (SELECT LOCALTIMESTAMP(0))::time BETWEEN begin_time AND finish_time AND name=$1",[campaign])
-            .then((cekCampaign) => {
-                if (cekCampaign.rowCount === 0){
-                    reject('Tidak ada campaign yang tersedia !');
-                } else if (cekCampaign.rowCount === 1) {
-                    let tmpCekCampaignStatus = new Promise((resolve, reject) => {
-                        redisBroadcaster.keys(`${campaign}`, (error, channels) => {
-                            resolve(channels.length);
-                        });
+            redisBroadcaster.keys(`${campaign}`, (error, channels) => {
+                if (channels.length === 1){
+                    reject({
+                        success: false,
+                        message: `Campaign sudah berjalan`
                     });
-                    Promise.resolve(tmpCekCampaignStatus)
-                    .then((valueCekCampaign) => {
-                        if (valueCekCampaign === 0){
-                            // ------------------------
-                            // CAMPAIGN DI MULAI
-                            // ------------------------
-                            //redisBroadcaster.multi();
-                            //redisBroadcaster.hset(`${campaign}`, 'string_pop_url', `${cekCampaign.rows[0].screen_pop_url}`);
-                            
-                            // ------------------------
-                            // CAMPAIGN DATA
-                            // ------------------------
-                            /*
-                            db.query("SELECT DISTINCT(username) as namauser FROM contact WHERE campaign=$1",[campaign])
-                            .then((rowCampaignUsers) => {
-                                if (rowCampaignUsers.rowCount > 0){
-                                    for (let rowUser of rowCampaignUsers.rows){
-                                        let tmpCampaignKeys = `${rowUser}|${campaign}`;
-                                    }
+                } else {
+                    db.query("SELECT name, begin_time, finish_time, screen_pop_url FROM campaign WHERE (SELECT LOCALTIMESTAMP(0))::time BETWEEN begin_time AND finish_time AND name=$1",[campaign])
+                    .then((campaignList) => {
+                        if (campaignList.rowCount !== 1){
+                            reject(
+                                {
+                                    success: false,
+                                    message: `Campaign ${campaign} tidak tersedia...`,
+                                    users: 0
                                 }
-                            }).catch((error) => console.error(error));
-                            */
-                            //db.query("SELECT customer_id, home_number, office_number, mobile_number, campaign, username, disposition FROM contact WHERE campaign=$1 AND disposition is null",[campaign])
+                            );
 
-
-
-                            // ------------------------
-                            // EKSEKUSI
-                            // ------------------------
                             
-                        }
-                    });
-                    /*
-                    db.query("SELECT DISTINCT(username) as namauser FROM contact WHERE campaign=$1",[campaign])
-                    .then((cekRedisCampaign) => {
-                        if (cekRedisCampaign.rowCount > 0){
-                            for (let rowCekRedis of cekRedisCampaign.rows){
-                                let tmpCekKeyRedis = `${rowCekRedis.namauser}|${campaign}`;
-                                let tmpHasilCekRedis;
-                                tmpHasilCekRedis = new Promise((resolve, reject) => {
-                                    redisBroadcaster.keys(`${tmpCekKeyRedis}`,(error, channels) => {                                        
-                                        resolve(channels.length);
-                                    });
-                                });
-                                Promise.resolve(tmpHasilCekRedis)
-                                .then((values) => {
-                                    if (values === 0){
-                                        console.info(`User ${rowCekRedis.namauser} BELOM jalan Redis Campaign nya`);
-                                        // -----------
-                                        // EKSEKUSI HAPUS LLIST
-                                        // -----------
-                                        redisBroadcaster.del(`${tmpCekKeyRedis}`);
-                                        redisBroadcaster.publish(`${rowCekRedis.namauser}`,`STOP_CAMPAIGN|${campaign}`);
-                                        // -----------
-                                        // JIKA USER BLOM DI CONFIRM CAMPAIGN UDAH JALAN APA BLOM
-                                        db.query("SELECT customer_id, home_number, office_number, mobile_number, campaign, username, disposition FROM contact WHERE campaign=$1 AND username=$2 AND disposition is null",[campaign, rowCekRedis.namauser])
-                                        .then((cekDataCampaign) => {
-                                            if (cekDataCampaign.rowCount > 0){
-                                                // CEK CAMPAIGN UDAH DI JALANIN APA BELOM:
-                                                for (let row of cekDataCampaign.rows){
-                                                    console.log(`[Campaign ${campaign}]: 
-                                                        username      : ${row.username},
-                                                        campaign      : ${row.campaign},
-                                                        disposition   : ${row.disposition},
-                                                        customer_id   : ${row.customer_id},
-                                                        home_number   : ${row.home_number},
-                                                        office_number : ${row.office_number},
-                                                        mobile_number : ${row.mobile_number}`);
+                        } else {
+                            db.query("SELECT DISTINCT(username) AS namauser FROM contact WHERE campaign=$1 GROUP BY username ORDER BY username",[campaign])
+                            .then((userList) => {
+                                let retrievedDataCampaign = [];
+                                const hashMultipleData = util_1.promisify(db.query);
+                                for(let rowUser of userList.rows){
+                                    retrievedDataCampaign.push(
+                                        new Promise((resolve, reject) =>{
+                                            hashMultipleData.bind(db)("SELECT customer_id, home_number, office_number, mobile_number, campaign, username, disposition FROM contact WHERE campaign=$1 AND username=$2 AND disposition is null ORDER BY username",[campaign, `${rowUser.namauser}`])
+                                            .then((values) => {
+                                                //console.log(`Data ${rowUser.namauser} ada ${values.rowCount}`);
+                                                if (values.rowCount > 0){
+                                                    let tmpDataQueue = [];
+                                                    for (let rowsData of values.rows){
+                                                        //console.log(`DATA-> ${rowsData.username}|${rowsData.customer_id}|${rowsData.home_number}|${rowsData.office_number}|${rowsData.mobile_number}`);
+                                                        tmpDataQueue.push(`${rowsData.customer_id}|${rowsData.home_number}|${rowsData.office_number}|${rowsData.mobile_number}`);
                                                     }
-                                                // -----------
-                                                // EKSEKUSI LPUSH
-                                                // -----------
-                                                
-                                                // -----------
-                                                resolve(`Data campaign sebanyak ${cekDataCampaign.rowCount}`);
-                                            } else {
-                                                console.info(`Gak ada data di campaign ${campaign} Cuk !`);
-                                                console.info(`"SELECT customer_id, home_number, office_number, mobile_number, campaign, username, disposition FROM contact WHERE campaign='${campaign}' AND username='${rowCekRedis.namauser}' AND disposition=null"`)
-                                            }
+                                                    resolve({
+                                                        username: `${rowUser.namauser}`,
+                                                        campaign: `${campaign}`,
+                                                        finishTime: `${campaignList.rows[0].finish_time}`,
+                                                        data: tmpDataQueue
+                                                    });
+                                                } else {
+                                                    reject(`Data kosong`);
+                                                }
+                                            })
                                         })
-                                        .catch((err) => console.error(err));
-                                        // -----------
-                                        // EKSEKUSI REDIS EXPIREAT(KEY, FINISHTIME)
-                                        // -----------
+                                    )
+                                }
+                                Promise.all(retrievedDataCampaign)
+                                .then((dataCampaign) => {
+                                    // EKSEKUSINYA DISINI BRO
+                                    //console.log(`Data: `, dataCampaign);
+                                    //let tmpTimeEnd = Date.parse(`${campaignList.rows[0].finish_time}`);
+                                    //let tmpTimeEnd = new Date().toLocaleString("id-ID",{ timeZone: 'Asia/Jakarta'}).toTimeString();
+                                    //let tmpTimeEnd = parseInt((new Date(`${campaignList.rows[0].finish_time}`).getTime() / 1000).toFixed(0))
+                                    let tmpDateNow = moment_1().format('YYYY-MM-DD');
+                                    let tmpTimeEnd = moment_1(`${tmpDateNow} ${campaignList.rows[0].finish_time}`,'YYYY-MM-DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+                                    //let tmpTimeEnd = moment_1(`${tmpDateNow} ${campaignList.rows[0].finish_time}`,'YYYY-MM-DD HH:mm:ss');
+                                    //let tmpTimeEnd = moment_1(`${campaignList.rows[0].finish_time}`,'HH:mm:ss').format('HH:mm:ss');
+                                    let nooo        = moment_1(`${tmpTimeEnd}`).unix();
 
-                                        // -----------
-                                        // EKSEKUSI REDIS PUBLISH(USERNAME, 'START_CAMPAIGN|NAMA USER')
-                                        // -----------
+                                    let tmpTimestamp        = new Date(nooo).toISOString();
+                                    //let tmpTimestamp        = new Date(nooo).toLocaleString("id-ID",{ timeZone: 'Asia/Jakarta'});
+                                    let redirectTimestamp   =  moment_1(`${tmpTimestamp}`,"YYYY-MM-DD HH:mm:ss").format('YYYY-MM-DD HH:mm:ss');
+                                    
+    
+                                    console.log(`Time: [${tmpDateNow}][${campaignList.rows[0].finish_time}]:[${tmpTimeEnd}][${nooo}][${tmpTimestamp}][${redirectTimestamp}]`);
+                                    //console.log(`Time: [${tmpDateNow}][${campaignList.rows[0].finish_time}]:[${tmpTimeEnd}][${nooo}]`);
+                                    console.log(`1-> Campaign hset(${campaign}, 'screen_pop_url', ${campaignList.rows[0].screen_pop_url})`);
+                                    //console.log(`2-> Campaign Data[${dataCampaign.length}] lengkap dengan expired nya`, dataCampaign);
+                                    console.log(`3-> Publish Data User START_CAMPAIGN|nama user`);
+                                    console.log(`4-> Campaign hset(${campaign}, 'started', TRUE)`);
+                                    console.log(`5-> Campaign expireat(${campaign}, ${campaignList.rows[0].finish_time}`);
+                                    resolve({
+                                        success: true,
+                                        message: `Campaign ${campaign} sukses di jalankan`,
+                                        users: dataCampaign.length,
+                                    });
 
-                                    } else{
-                                        console.info(`User ${rowCekRedis.namauser} SUDAH jalan Redis Campaign nya`);
-                                    }
-                                }).catch((err) => {
-                                    console.error(err)
+                                    
+                                }).catch((error) => {
+                                    console.error(`Data: `, error);
                                 });
-                                
-                            }
-                        }else{
-                            reject(`Tidak ada user di campaign ${campaign} !`);
+                            }).catch((error) => console.error(error));
                         }
-                    }).catch((err) => console.error(err));
-                    */
+                    }).catch((error) => console.error(error));
                 }
-            })
-            .catch((err) => console.error(err));
+            });
         }
     });
 }
 
 
-let tmpNamaCampaign = 'TEST1';
+let tmpNamaCampaign = 'TEST3';
+/*
 let tmpExecuteCampaign = Promise.resolve(getCekCampaign(tmpNamaCampaign));
 tmpExecuteCampaign.then((value) => {
-    console.log(`Hasil eksekusi fungsi: ${value}`);
+
+    console.log(`Hasil eksekusi fungsi [${tmpNamaCampaign}]: ${value}, ${value.length}`);
+});
+*/
+getCekCampaign(tmpNamaCampaign)
+.then((message) => {
+    console.log(`Hasil eksekusi resolve [${tmpNamaCampaign}][${message.users}]:`, message);
+}).catch((message) => {
+    console.log(`Hasil eksekusi reject  [${tmpNamaCampaign}][${message.users}]:`,message);
 });

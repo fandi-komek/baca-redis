@@ -13,6 +13,7 @@
   "dependencies": {
     "asterisk-manager-interface": "^1.1.1",
     "ioredis": "^4.19.2",
+    "moment": "^2.29.1",
     "pg": "^8.5.1",
     "redis": "^3.0.2"
   }
