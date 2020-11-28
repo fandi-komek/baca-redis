@@ -1,6 +1,6 @@
-const moment_1  = require("moment");
-
-const timeToEnd = '22:00:00';
+//const moment_1  = require("moment");
+//const timeToEnd = '22:00:00';
+const redis_1   = require("redis");
 
 /*
 let tmpTime_001 = moment_1(`${moment_1().format('YYYY-MM-DD')} ${timeToEnd}`,'YYYY-MM-DD HH:mm:ss');
@@ -17,6 +17,7 @@ console.info(`Time to end 2:[${tmpTime_0002}]`);
 console.info(`Time to end 3:[${tmpTime_0003}]`);
 console.info(`Time to end 4:[${tmpTime_0004}][${tmpTime_0005}][${tmpTime_0006}]`);
 */
+/*
 let tmpTime_001 = moment_1().format('YYYY-MM-DD HH:mm:ss');
 
 function toTimestamp(strDate){
@@ -58,5 +59,55 @@ console.info(`End Time    :[${tmpTime_002}][${toTimestamp(tmpTime_002)}]`);
 
 console.info('');
 console.info(`TEST        :[${numberSecondToInterval(2974)}]`);
+*/
+
+const redisBroadcaster  = redis_1.createClient('6379','192.168.99.24');
+var testLuarValue       = 0;
+let tmpNamaCampaign     = 'TEST2';
+
+console.log(`Hasil sebelom diluar [${testLuarValue}]`);
+
+let tmpFungsi           = (campaign) => {
+    return new Promise((resolve, reject) => {
+        if (campaign === '' || campaign === null){
+            reject('Campaign gak boleh kosong')
+        } else {
+            let retreivedData;
+            retreivedData = new Promise((resolve, reject) => {
+                redisBroadcaster.ttl(`${campaign}`, (error, reply) => {
+                    if(error){
+                        reject(error)
+                    } 
+                    resolve(reply);
+                })
+            });
+            Promise.resolve(retreivedData)
+            .then((values) => {
+                resolve(values);
+            })
+        }
+    });
+}
+
+/*
+let tmpCekTTL           = Promise.resolve(
+    redisBroadcaster.ttl(`${tmpNamaCampaign}`,(err,reply) =>{
+        return(reply);
+    })
+)
+*/
+tmpFungsi(`${tmpNamaCampaign}`)
+.then((values) => {
+    console.log(`CARA 1 [${values}]`);
+});
+let tmpCaraKedua = Promise.resolve(tmpFungsi(`${tmpNamaCampaign}`));
+    tmpCaraKedua.then((nilai2) => {
+        testLuarValue = nilai2;
+        console.log(`CARA 1 [${nilai2}]`);
+    });
+
+
+
+console.log(`Hasil setelah diluar [${testLuarValue}]`);
 
 
