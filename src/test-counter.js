@@ -1,7 +1,8 @@
 //const moment_1  = require("moment");
 //const timeToEnd = '22:00:00';
+const { resolve } = require("path");
 const redis_1   = require("redis");
-
+const util_1    = require("util");
 /*
 let tmpTime_001 = moment_1(`${moment_1().format('YYYY-MM-DD')} ${timeToEnd}`,'YYYY-MM-DD HH:mm:ss');
 
@@ -62,6 +63,7 @@ console.info(`TEST        :[${numberSecondToInterval(2974)}]`);
 */
 
 const redisBroadcaster  = redis_1.createClient('6379','192.168.99.24');
+/*
 var testLuarValue       = 0;
 let tmpNamaCampaign     = 'TEST2';
 
@@ -88,7 +90,7 @@ let tmpFungsi           = (campaign) => {
         }
     });
 }
-
+*/
 /*
 let tmpCekTTL           = Promise.resolve(
     redisBroadcaster.ttl(`${tmpNamaCampaign}`,(err,reply) =>{
@@ -96,6 +98,7 @@ let tmpCekTTL           = Promise.resolve(
     })
 )
 */
+/*
 tmpFungsi(`${tmpNamaCampaign}`)
 .then((values) => {
     console.log(`CARA 1 [${values}]`);
@@ -105,9 +108,71 @@ let tmpCaraKedua = Promise.resolve(tmpFungsi(`${tmpNamaCampaign}`));
         testLuarValue = nilai2;
         console.log(`CARA 1 [${nilai2}]`);
     });
+*/
+let testValue = ['TEST1-1','TEST2-1', 'TEST3-1'];
+let tmpTestName = 'KPM0003';
+
+let testMulti = [
+    {
+        name: 'KPM0001-1',
+        data: testValue,
+    },
+    {
+        name: 'KPM0002-1',
+        data: testValue,
+    },
+    {
+        name: 'KPM0003-1',
+        data: testValue,
+    }
+]
 
 
-
-console.log(`Hasil setelah diluar [${testLuarValue}]`);
+/*
+for (let i of testValue){
+        redisBroadcaster.publish(tmpTestName, i, (err, reply) => {
+            if (err){
+                console.error(`Error bang ${err}`);
+            }
+            console.info(`Reply : ${i}|${reply}`);
+        });
+}
+*/
+/*
+let tmpTestMulti = (name, data) =>{
+    return new Promise((resolve, reject) => {
+        if (data.length > 0){
+            redisBroadcaster.lpush(name, data, (reply) => {
+                resolve(`OK BANG ${name} ${reply}`) 
+            }); 
+        } else {
+            reject('Sempak');
+        }
+    })
+} 
+for (let i of testMulti){
+    
+    tmpTestMulti(i.name, i.data)
+    .then((values) => {
+        console.log('Hasil:', values);
+    }).catch((message) => {
+        console.error('Error:',message);
+    })
+}
+*/
+var redisMulti =  redisBroadcaster.multi();
+testMulti.forEach((dataClient) => {
+    var testKey = dataClient.name;
+    redisMulti.lpush(testKey, dataClient.data);
+});
+redisMulti.exec((err, result) => {
+    if (err){
+        console.error(err);
+    }
+    console.log(result);
+})
+//redisBroadcaster.publish(`${tmpTestName}`,'INI expire');
+//redisBroadcaster.publish(`${tmpTestName}`, 'INI start campaign');
+//console.log(`Hasil setelah diluar [${testLuarValue}]`);
 
 
