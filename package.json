@@ -12,9 +12,12 @@
   "license": "ISC",
   "dependencies": {
     "asterisk-manager-interface": "^1.1.1",
+    "dgram": "^1.0.1",
+    "dns-then": "^0.1.0",
     "ioredis": "^4.19.2",
     "moment": "^2.29.1",
     "pg": "^8.5.1",
+    "raw-socket": "^1.7.0",
     "redis": "^3.0.2",
     "ws": "^7.4.0"
   }
